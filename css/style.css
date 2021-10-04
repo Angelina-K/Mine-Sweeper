@@ -1,0 +1,18 @@
+body {
+  background-color: antiquewhite;
+}
+
+.board-container {
+  background-color: aqua;
+  height: 500px;
+  width: 500px;
+}
+.cell {
+  background-color: honeydew;
+  width: 50px;
+  height: 50px;
+}
+
+.reveal {
+  background-color: grey;
+}
