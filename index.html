@@ -6,20 +6,50 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Minesweeper</title>
     <link rel="stylesheet" href="css/style.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@200;400&display=swap"
+      rel="stylesheet"
+    />
   </head>
+  <!-- <img src="img/mine.png" alt=""> -->
   <body onload="init()">
-    <h1>Minesweeper</h1>
-    <!-- <button class="difficulty" onclick="renderTable(16)">Easy</button>
-    <button class="difficulty" onclick="renderTable(25)">Hard</button>
-    <button class="difficulty" onclick="renderTable(36)">Expert</button> -->
-    <div class="game-track">
-      <span class="score"></span>
-      <span class="timer"></span>
-      <span class="lives"></span>
-    </div>
+    <div class="main">
+      <div class="title">
+        <h1>MineSweeper;</h1>
+        <h2></h2>
+        <div class="lev">
+          <button class="level-btn" onclick="setLevel(4,2)">Easy</button>
+          <button class="level-btn" onclick="setLevel(8,12)">Hard</button>
+          <button class="level-btn" onclick="setLevel(12,30)">Expert</button>
+        </div>
+        <div class="tracker">
+          <!-- <span class="score">xxx</span> -->
+          <div class="track lives"></div>
+          <button class="smily" onclick="resetGame()">
+            <img src="img/normal.png" alt="" />
+          </button>
 
-    <div class="board-container">
-      <table></table>
+          <div class="track timer"></div>
+        </div>
+        <button class="safe-cell" onclick="safeClick()">
+          safe Clicks: <span>3</span>
+        </button>
+        <button class="hint 1" onclick="storeBtn(this)">
+          <img src="img/hint.png" alt="" />
+        </button>
+        <button class="hint 2" onclick="storeBtn(this)">
+          <img src="img/hint.png" alt="" />
+        </button>
+        <button class="hint 3" onclick="storeBtn(this)">
+          <img src="img/hint.png" alt="" />
+        </button>
+      </div>
+
+      <div class="board-container">
+        <table></table>
+      </div>
     </div>
     <script src="js/game.js"></script>
     <script src="js/utils.js"></script>

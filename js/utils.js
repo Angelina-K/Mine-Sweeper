@@ -25,7 +25,7 @@ function renderBoard(board) {
     strHTML += "<tr>";
     for (var j = 0; j < board[0].length; j++) {
       var className = `cell cell${i}-${j}`;
-      strHTML += `<td class="${className}"  onclick="cellClicked(${i},${j},this)" oncontextmenu="markCell(${i},${j})" ></td>`;
+      strHTML += `<td class="${className}"  onclick="cellClicked(${i},${j},this)" oncontextmenu="markCell(${i},${j},event)" ></td>`;
     }
     strHTML += "</tr>";
   }
@@ -37,11 +37,6 @@ function renderBoard(board) {
 function renderCell(i, j, value) {
   var elCell = document.querySelector(`.cell${i}-${j}`);
   elCell.innerHTML = value;
-}
-
-function getClassName(i, j) {
-  var cellClass = "cell-" + i + "-" + j;
-  return cellClass;
 }
 
 function getRandomInt(min, max) {
@@ -61,8 +56,4 @@ function countNeighbors(cellI, cellJ, mat) {
     }
   }
   return neighborsCount;
-}
-
-function getNegsLocs(i, j) {
-  console.log(".");
 }
