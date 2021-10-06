@@ -5,7 +5,9 @@ var gminesLocations = [];
 var gActiveMines = 0;
 var gTimerInterval;
 var gCurrHintBtn;
-
+var gNegsForHint = [];
+var gRemovedHintBtns = [];
+var gRecord;
 const MINE = "💣";
 const FLAG = "🚩";
 const LIFE = "🤍";
@@ -28,6 +30,16 @@ var gGame = {
 function init() {
   gBoard = createMat(gLevel.size);
   renderBoard(gBoard);
+  renderAllFeatures();
+  gRecord = getSessionRecord("record");
+}
+
+function getSessionRecord(key) {
+  return sessionStorage.getItem(key) ? sessionStorage.getItem(key) : "";
+}
+
+function setSessionRecord(key, val) {
+  sessionStorage.setItem(key, val);
 }
 // ************************************************
 function setLevel(size, mines) {
@@ -39,9 +51,10 @@ function setLevel(size, mines) {
 }
 // ************************************************
 function resetGame() {
+  gRecord = getSessionRecord("record");
   var elTitle = document.querySelector("h1");
   elTitle.innerText = "MineSweeper;";
-  elTitle.style.fontSize = 70 + "px";
+  elTitle.style.fontSize = 60 + "px";
   var elSmily = document.querySelector(".smily");
   elSmily.innerHTML = '<img src="img/normal.png" alt="" />';
   clearInterval(gTimerInterval);
@@ -59,8 +72,7 @@ function resetGame() {
   elTimer.innerText = gGame.secPassed;
   gBoard = createMat(gLevel.size);
   renderBoard(gBoard);
-  renderLives();
-  renderSafeClicks();
+  renderAllFeatures();
 }
 // ************************************************
 function startGame(firstCellClicked) {
@@ -69,17 +81,32 @@ function startGame(firstCellClicked) {
   addMines(firstCellClicked, gLevel.mines);
   addNums();
   renderBoardContent(gBoard);
-  renderLives();
-  renderSafeClicks();
+  renderAllFeatures();
 }
+// ************************************************
+function renderAllFeatures() {
+  renderLives();
+  renderSafeClickBtn();
+  renderHintBtns();
+}
+
 // ************************************************
 function renderLives() {
   var elLife = document.querySelector(".lives");
   elLife.innerText = gGame.lives;
 }
-function renderSafeClicks() {
+function renderSafeClickBtn() {
   var elSafeBtn = document.querySelector(".safe-cell span");
   elSafeBtn.innerText = gGame.safeClicks;
+}
+function renderHintBtns() {
+  if (gRemovedHintBtns) {
+    for (let i = 0; i < gRemovedHintBtns.length; i++) {
+      gRemovedHintBtns[i].setAttribute("onclick", "storeBtn(this)");
+      gRemovedHintBtns[i].style.opacity = 0.5;
+      gRemovedHintBtns[i].style.visibility = "visible";
+    }
+  }
 }
 // ************************************************
 function renderBoardContent(board) {
@@ -115,7 +142,8 @@ function addMines(firstCellClicked, mines) {
     };
     if (
       location.i !== firstCellClicked.i &&
-      location.j !== firstCellClicked.j
+      location.j !== firstCellClicked.j &&
+      !gBoard[location.i][location.j].isMine
     ) {
       gBoard[location.i][location.j].isMine = true;
       numOfMinesSet++;
@@ -127,6 +155,7 @@ function addMines(firstCellClicked, mines) {
   gActiveMines = numOfMinesSet;
   return minesLocs;
 }
+
 // ************************************************
 function startTimer() {
   gGame.secPassed += 1;
@@ -169,21 +198,27 @@ function markCell(i, j, ev) {
       renderCell(i, j, FLAG);
       if (cell.isMine) {
         gActiveMines--;
+        checkIfWin();
       }
     }
   } else {
     renderCell(i, j, "");
     cell.isMarked = !cell.isMarked;
     gGame.markedCount--;
+    if (cell.isMine) gActiveMines++;
   }
 }
 // ************************************************
 function mineExploded(i, j) {
   gGame.lives.pop();
+  var audio = new Audio("sound/pop.mp3");
+  audio.play();
   renderLives();
   gActiveMines--;
   revealCellContent(i, j);
   if (!gGame.lives.length) {
+    var audio = new Audio("sound/lose.mp3");
+    audio.play();
     gameOver("lose");
     var elMine = document.querySelector(`.cell${i}-${j}`);
     elMine.style.background = "#de6f58";
@@ -201,6 +236,17 @@ function gameOver(gameOutcome) {
       ? '<img src="img/lose.png" alt="" />'
       : '<img src="img/win.png" alt="" />';
 
+  if (gameOutcome === "win") {
+    if (
+      gGame.secPassed < gRecord ||
+      gRecord === "" ||
+      document.querySelector(".record span").innerHTML === ""
+    ) {
+      setSessionRecord("record", "" + gGame.secPassed);
+      document.querySelector(".record span").innerHTML = "" + gGame.secPassed;
+    } else {
+    }
+  }
   clearInterval(gTimerInterval);
   gGame.isOn = false;
 
@@ -228,8 +274,11 @@ function checkIfWin() {
   if (
     gGame.shownCount === Math.pow(gLevel.size, 2) - gGame.markedCount &&
     !gActiveMines
-  )
+  ) {
+    var audio = new Audio("sound/win.mp3");
+    audio.play();
     gameOver("win");
+  }
 }
 // ************************************************
 function revealNegsContent(cellI, cellJ, mat) {
@@ -239,48 +288,18 @@ function revealNegsContent(cellI, cellJ, mat) {
     for (var j = cellJ - 1; j <= cellJ + 1; j++) {
       if (j < 0 || j >= mat[i].length) continue;
       if (gGame.isHintMode) {
-        negsForHint.push({ i: i, j: j });
-        revealCellContent(i, j);
+        if (!gBoard[i][j].isShown && !gBoard[i][j].isMarked) {
+          revealCellContent(i, j);
+          negsForHint.push({ i: i, j: j });
+        }
       }
-      if (mat[i][j].isMine) continue;
-      if (mat[i][j].isMarked) continue;
+      if (mat[i][j].isMine || mat[i][j].isMarked || mat[i][j].isShown) continue;
       revealCellContent(i, j);
+      if (!mat[i][j].minesAroundCount) revealNegsContent(i, j, mat);
     }
   }
   return negsForHint;
 }
-// ************************************************
-// var count = 0;
-// function revealNegsContent(cellI, cellJ, mat) {
-//   var negsFound = [];
-//   for (var i = cellI - 1; i <= cellI + 1; i++) {
-//     if (i < 0 || i >= mat.length) continue;
-//     for (var j = cellJ - 1; j <= cellJ + 1; j++) {
-//       if (i === cellI && j === cellJ) continue;
-//       if (j < 0 || j >= mat[i].length) continue;
-//       if (mat[i][j].isMine) continue;
-//       if (mat[i][j].isMarked) continue;
-//       revealCellContent(i, j);
-//       if (!mat[i][j].minesAroundCount) {
-//         if (mat[i][j] !== mat[cellI][cellJ]) {
-//           revealNegsContent(i,j,mat)
-
-//           negsFound.shift();
-//           negsFound.push({ i: i, j: j });
-//         }
-//       }
-//     }
-//   }
-
-//   // if (negsFound.length) {
-//   //   console.log("negsFound.length", negsFound.length);
-//   //   for (let i = 0; i < negsFound.length; i++) {
-//   //     var currNegLoc = negsFound[i];
-//   //     revealNegsContent(currNegLoc.i, currNegLoc.j, mat);
-//   //     negsFound.shift();
-//   //   }
-//   // }
-// }
 // ************************************************
 function addNums() {
   for (let i = 0; i < gBoard.length; i++) {
@@ -293,17 +312,23 @@ function addNums() {
   }
 }
 // ************************************************
-function getHint(i, j) {
-  var negs = revealNegsContent(i, j, gBoard);
+function getHint(celli, cellj) {
+  var negs = revealNegsContent(celli, cellj, gBoard);
   gGame.isHintMode = false;
 
+  // for (let i = 0; i < negs.length; i++) {
+  //   var currNeg = negs[i];
+  //   revealCellContent([currNeg[i]], [currNeg[j]]);
+  // }
   setTimeout(function () {
     for (let i = 0; i < negs.length; i++) {
       var currNeg = negs[i];
       gBoard[currNeg.i][currNeg.j].isShown = false;
+      gGame.shownCount--;
       renderCell(currNeg.i, currNeg.j, "");
       var elCell = document.querySelector(`.cell${currNeg.i}-${currNeg.j}`);
       elCell.classList.remove("reveal");
+
       gCurrHintBtn.removeAttribute("onclick");
       gCurrHintBtn.style.visibility = "hidden";
     }
@@ -311,13 +336,18 @@ function getHint(i, j) {
 }
 // ************************************************
 function storeBtn(hintBtn) {
+  if (!gGame.isOn) return;
   gGame.isHintMode = true;
+  gRemovedHintBtns.push(hintBtn);
   gCurrHintBtn = hintBtn;
   gCurrHintBtn.style.opacity = 1;
+
+  var audio = new Audio("sound/sharingan.mp3");
+  audio.play();
 }
 // ************************************************
 function safeClick() {
-  if (!gGame.safeClicks) return;
+  if (!gGame.safeClicks || !gGame.isOn) return;
   var safeCell;
   while (!safeCell) {
     var i = getRandomInt(0, gBoard.length - 1);
@@ -326,12 +356,14 @@ function safeClick() {
       safeCell = gBoard[i][j];
       var elSafeCell = document.querySelector(`.cell${i}-${j}`);
       elSafeCell.classList.add("flash");
+      var audio = new Audio("sound/sharingan.mp3");
+      audio.play();
 
       setTimeout(function () {
         elSafeCell.classList.remove("flash");
       }, 1500);
       gGame.safeClicks--;
-      renderSafeClicks();
+      renderSafeClickBtn();
     }
   }
 }

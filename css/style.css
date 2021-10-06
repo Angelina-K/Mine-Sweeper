@@ -107,8 +107,8 @@ table {
   height: 40px;
   background-color: #0f3334;
   font-size: 15px;
-  left: 300px;
-  bottom: 70px;
+  left: 310px;
+  bottom: 50px;
 }
 
 .flash {
@@ -130,4 +130,14 @@ table {
 .hint img {
   height: 50px;
   width: 50px;
+}
+
+.record {
+  position: relative;
+  width: fit-content;
+  height: fit-content;
+  color: #ecddca;
+  font-size: 20px;
+  left: 660px;
+  bottom: 180px;
 }
